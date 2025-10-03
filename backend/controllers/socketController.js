@@ -124,14 +124,18 @@ const handleSocketConnection = (io) => {
                 if (to) {
                     const targetSocketId = findSocketByParticipantId(socketInfo.meetingCode, to);
                     if (targetSocketId) {
+                        console.log(`📡 Offer from ${socketInfo.participantName} to ${to}`);
                         io.to(targetSocketId).emit('offer', {
                             ...data,
                             from: socketInfo.participantId,
                             fromName: socketInfo.participantName
                         });
+                    } else {
+                        console.log(`⚠️ Target participant ${to} not found in meeting ${socketInfo.meetingCode}`);
                     }
                 } else {
                     // Broadcast to all if no specific target
+                    console.log(`📡 Broadcasting offer from ${socketInfo.participantName} to all`);
                     socket.to(socketInfo.meetingCode).emit('offer', {
                         ...data,
                         from: socketInfo.participantId,
@@ -149,14 +153,18 @@ const handleSocketConnection = (io) => {
                 if (to) {
                     const targetSocketId = findSocketByParticipantId(socketInfo.meetingCode, to);
                     if (targetSocketId) {
+                        console.log(`📡 Answer from ${socketInfo.participantName} to ${to}`);
                         io.to(targetSocketId).emit('answer', {
                             ...data,
                             from: socketInfo.participantId,
                             fromName: socketInfo.participantName
                         });
+                    } else {
+                        console.log(`⚠️ Target participant ${to} not found in meeting ${socketInfo.meetingCode}`);
                     }
                 } else {
                     // Broadcast to all if no specific target
+                    console.log(`📡 Broadcasting answer from ${socketInfo.participantName} to all`);
                     socket.to(socketInfo.meetingCode).emit('answer', {
                         ...data,
                         from: socketInfo.participantId,
