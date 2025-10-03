@@ -33,15 +33,7 @@ const APITester: React.FC = () => {
       addResult('Health Check', false, null, error.message);
     }
 
-    // Test 2: Get All Live Courses
-    try {
-      const coursesResponse = await liveCourseAPI.getAllCourses();
-      addResult('Get All Live Courses', coursesResponse.success, coursesResponse.data, coursesResponse.error);
-    } catch (error: any) {
-      addResult('Get All Live Courses', false, null, error.message);
-    }
-
-    // Test 3: Get Specific Live Course
+    // Test 2: Get Specific Live Course
     try {
       const courseResponse = await liveCourseAPI.getCourseById('test123');
       addResult('Get Live Course by ID', courseResponse.success, courseResponse.data, courseResponse.error);
@@ -49,7 +41,7 @@ const APITester: React.FC = () => {
       addResult('Get Live Course by ID', false, null, error.message);
     }
 
-    // Test 4: Start Live Course (creates meeting room)
+    // Test 3: Start Live Course (creates meeting room)
     let testCourseId = 'test789';
     let meetingCode = '';
     try {
@@ -68,7 +60,7 @@ const APITester: React.FC = () => {
       addResult('Start Live Course', false, null, error.message);
     }
 
-    // Test 5: Socket.IO Connection (if we have a meeting code)
+    // Test 4: Socket.IO Connection (if we have a meeting code)
     if (meetingCode) {
       try {
         socketService.connect();
@@ -107,7 +99,7 @@ const APITester: React.FC = () => {
       }
     }
 
-    // Test 6: Complete Live Course (stops recording and ends meeting)
+    // Test 5: Complete Live Course (stops recording and ends meeting)
     setTimeout(async () => {
       try {
         const completeResponse = await liveCourseAPI.completeCourse(testCourseId);
