@@ -27,7 +27,7 @@ class SocketService {
     }
 
     // Use environment variable or default to backend port
-    const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://krishnabarasiya.space';
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3000';
     this.socket = io(backendUrl, {
       transports: ['websocket', 'polling'],
       timeout: 10000,
