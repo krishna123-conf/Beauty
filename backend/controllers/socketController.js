@@ -119,33 +119,83 @@ const handleSocketConnection = (io) => {
         socket.on('offer', (data) => {
             const socketInfo = socketMeetings.get(socket.id);
             if (socketInfo) {
-                socket.to(socketInfo.meetingCode).emit('offer', {
-                    ...data,
-                    from: socketInfo.participantId,
-                    fromName: socketInfo.participantName
-                });
+                const { to } = data;
+                // Find target socket by participant ID
+                if (to) {
+                    const targetSocketId = findSocketByParticipantId(socketInfo.meetingCode, to);
+                    if (targetSocketId) {
+                        console.log(`📡 Offer from ${socketInfo.participantName} to ${to}`);
+                        io.to(targetSocketId).emit('offer', {
+                            ...data,
+                            from: socketInfo.participantId,
+                            fromName: socketInfo.participantName
+                        });
+                    } else {
+                        console.log(`⚠️ Target participant ${to} not found in meeting ${socketInfo.meetingCode}`);
+                    }
+                } else {
+                    // Broadcast to all if no specific target
+                    console.log(`📡 Broadcasting offer from ${socketInfo.participantName} to all`);
+                    socket.to(socketInfo.meetingCode).emit('offer', {
+                        ...data,
+                        from: socketInfo.participantId,
+                        fromName: socketInfo.participantName
+                    });
+                }
             }
         });
 
         socket.on('answer', (data) => {
             const socketInfo = socketMeetings.get(socket.id);
             if (socketInfo) {
-                socket.to(socketInfo.meetingCode).emit('answer', {
-                    ...data,
-                    from: socketInfo.participantId,
-                    fromName: socketInfo.participantName
-                });
+                const { to } = data;
+                // Find target socket by participant ID
+                if (to) {
+                    const targetSocketId = findSocketByParticipantId(socketInfo.meetingCode, to);
+                    if (targetSocketId) {
+                        console.log(`📡 Answer from ${socketInfo.participantName} to ${to}`);
+                        io.to(targetSocketId).emit('answer', {
+                            ...data,
+                            from: socketInfo.participantId,
+                            fromName: socketInfo.participantName
+                        });
+                    } else {
+                        console.log(`⚠️ Target participant ${to} not found in meeting ${socketInfo.meetingCode}`);
+                    }
+                } else {
+                    // Broadcast to all if no specific target
+                    console.log(`📡 Broadcasting answer from ${socketInfo.participantName} to all`);
+                    socket.to(socketInfo.meetingCode).emit('answer', {
+                        ...data,
+                        from: socketInfo.participantId,
+                        fromName: socketInfo.participantName
+                    });
+                }
             }
         });
 
         socket.on('ice-candidate', (data) => {
             const socketInfo = socketMeetings.get(socket.id);
             if (socketInfo) {
-                socket.to(socketInfo.meetingCode).emit('ice-candidate', {
-                    ...data,
-                    from: socketInfo.participantId,
-                    fromName: socketInfo.participantName
-                });
+                const { to } = data;
+                // Find target socket by participant ID
+                if (to) {
+                    const targetSocketId = findSocketByParticipantId(socketInfo.meetingCode, to);
+                    if (targetSocketId) {
+                        io.to(targetSocketId).emit('ice-candidate', {
+                            ...data,
+                            from: socketInfo.participantId,
+                            fromName: socketInfo.participantName
+                        });
+                    }
+                } else {
+                    // Broadcast to all if no specific target
+                    socket.to(socketInfo.meetingCode).emit('ice-candidate', {
+                        ...data,
+                        from: socketInfo.participantId,
+                        fromName: socketInfo.participantName
+                    });
+                }
             }
         });
 
@@ -309,6 +359,22 @@ const handleSocketConnection = (io) => {
     });
 
     return io;
+};
+
+/**
+ * Find socket ID by participant ID in a meeting
+ */
+const findSocketByParticipantId = (meetingCode, participantId) => {
+    const roomSockets = meetingRooms.get(meetingCode);
+    if (!roomSockets) return null;
+
+    for (const socketId of roomSockets) {
+        const socketInfo = socketMeetings.get(socketId);
+        if (socketInfo && socketInfo.participantId === participantId) {
+            return socketId;
+        }
+    }
+    return null;
 };
 
 /**

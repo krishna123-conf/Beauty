@@ -4,7 +4,7 @@ export class WebRTCService {
   private peerConnections: Map<string, RTCPeerConnection> = new Map();
   private localStream: MediaStream | null = null;
   private screenStream: MediaStream | null = null;
-  private mediaStreamCallbacks: Map<string, (stream: MediaStream) => void> = new Map();
+  private mediaStreamCallbacks: Map<string, (stream: MediaStream, participantId: string) => void> = new Map();
   private remoteStreams: Map<string, MediaStream> = new Map();
   private isAudioEnabled = true;
   private isVideoEnabled = true;
@@ -57,7 +57,7 @@ export class WebRTCService {
         this.remoteStreams.set(participantId, event.streams[0]);
         const callback = this.mediaStreamCallbacks.get('remoteStream');
         if (callback) {
-          callback(event.streams[0]);
+          callback(event.streams[0], participantId);
         }
       }
     };
@@ -251,7 +251,7 @@ export class WebRTCService {
   }
 
   // Set callback for remote streams
-  onRemoteStream(callback: (stream: MediaStream) => void): void {
+  onRemoteStream(callback: (stream: MediaStream, participantId: string) => void): void {
     this.mediaStreamCallbacks.set('remoteStream', callback);
   }
 

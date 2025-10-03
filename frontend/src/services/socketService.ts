@@ -117,6 +117,13 @@ class SocketService {
     }
   }
 
+  // Listen for current participants list
+  onCurrentParticipants(callback: (participants: any[]) => void): void {
+    if (this.socket) {
+      this.socket.on('current-participants', callback);
+    }
+  }
+
   // Listen for error events
   onError(callback: (error: any) => void): void {
     if (this.socket) {

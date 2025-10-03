@@ -28,8 +28,10 @@ const MeetingRoom: React.FC<MeetingRoomProps> = ({
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isInitializingMedia, setIsInitializingMedia] = useState(false);
+  const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
 
   useEffect(() => {
     const initializeMedia = async () => {
@@ -101,8 +103,40 @@ const MeetingRoom: React.FC<MeetingRoomProps> = ({
       };
       setChatMessages(prev => [...prev, systemMessage]);
 
-      // Create WebRTC offer for the new participant
+      // Create WebRTC offer for the new participant (existing participant initiates)
       webrtcService.createOffer(data.participantId);
+    });
+
+    // Handle current participants list when joining
+    socketService.onCurrentParticipants((participants: any[]) => {
+      console.log('📋 Received current participants:', participants);
+      
+      // Update participants list
+      setParticipants(prev => {
+        const updated = [...prev];
+        participants.forEach(p => {
+          const exists = updated.some(existing => existing.id === p.participantId);
+          if (!exists && p.participantId !== currentParticipant.id) {
+            updated.push({
+              id: p.participantId,
+              name: p.participantName,
+              isHost: p.isHost || false,
+              joinedAt: p.joinedAt || new Date().toISOString()
+            });
+          }
+        });
+        return updated;
+      });
+      
+      // Create WebRTC offers for all existing participants
+      participants.forEach(p => {
+        if (p.participantId !== currentParticipant.id) {
+          // Small delay to ensure the other participant is ready
+          setTimeout(() => {
+            webrtcService.createOffer(p.participantId);
+          }, 500);
+        }
+      });
     });
 
     socketService.onParticipantLeft((data) => {
@@ -120,13 +154,34 @@ const MeetingRoom: React.FC<MeetingRoomProps> = ({
 
       // Remove participant from WebRTC
       webrtcService.removeParticipant(data.participantId);
+
+      // Remove remote stream
+      setRemoteStreams(prev => {
+        const updated = new Map(prev);
+        updated.delete(data.participantId);
+        return updated;
+      });
+      remoteVideoRefs.current.delete(data.participantId);
     });
 
     // Set up WebRTC event listeners
-    webrtcService.onRemoteStream((stream: MediaStream) => {
+    webrtcService.onRemoteStream((stream: MediaStream, participantId: string) => {
       // Handle remote video streams
-      console.log('📺 Received remote stream:', stream);
-      // You can add logic here to display remote streams
+      console.log('📺 Received remote stream from:', participantId, stream);
+      setRemoteStreams(prev => {
+        const updated = new Map(prev);
+        updated.set(participantId, stream);
+        return updated;
+      });
+
+      // Update video element if it exists
+      setTimeout(() => {
+        const videoElement = remoteVideoRefs.current.get(participantId);
+        if (videoElement) {
+          videoElement.srcObject = stream;
+          console.log('✅ Attached stream to video element for:', participantId);
+        }
+      }, 100);
     });
 
     // Set up media control listeners
@@ -328,14 +383,35 @@ const MeetingRoom: React.FC<MeetingRoomProps> = ({
                 <div className="remote-videos">
                   {participants
                     .filter(p => p.id !== currentParticipant.id)
-                    .map(participant => (
-                      <div key={participant.id} className="remote-video">
-                        <div className="video-placeholder-remote">
-                          <span>📺</span>
+                    .map(participant => {
+                      const hasStream = remoteStreams.has(participant.id);
+                      return (
+                        <div key={participant.id} className="remote-video">
+                          {hasStream ? (
+                            <video
+                              ref={(el) => {
+                                if (el) {
+                                  remoteVideoRefs.current.set(participant.id, el);
+                                  const stream = remoteStreams.get(participant.id);
+                                  if (stream && el.srcObject !== stream) {
+                                    el.srcObject = stream;
+                                  }
+                                }
+                              }}
+                              autoPlay
+                              playsInline
+                              className="video-element"
+                            />
+                          ) : (
+                            <div className="video-placeholder-remote">
+                              <span>📺</span>
+                              <p>Connecting...</p>
+                            </div>
+                          )}
                           <div className="video-label">{participant.name}</div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   }
                   {participants.length === 1 && (
                     <div className="no-participants">
