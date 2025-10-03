@@ -44,19 +44,28 @@ const handleSocketConnection = (io) => {
                 }
                 meetingRooms.get(meetingCode).add(socket.id);
 
-                console.log(`👥 ${participantName} joined meeting ${meetingCode}`);
+                // Send current participants to the new participant BEFORE adding them
+                const currentParticipants = Array.from(meeting.participants.values());
+                socket.emit('current-participants', currentParticipants);
 
-                // Notify other participants
+                // Add participant to the meeting's participant list
+                meeting.participants.set(participantId, {
+                    participantId,
+                    participantName,
+                    isHost: isHost || false,
+                    joinedAt: new Date().toISOString(),
+                    socketId: socket.id
+                });
+
+                console.log(`👥 ${participantName} joined meeting ${meetingCode} (${meeting.participants.size} total participants)`);
+
+                // Notify other participants about the new participant
                 socket.to(meetingCode).emit('participant-joined', {
                     participantId,
                     participantName,
                     isHost: isHost || false,
                     joinedAt: new Date().toISOString()
                 });
-
-                // Send current participants to the new participant
-                const currentParticipants = Array.from(meeting.participants.values());
-                socket.emit('current-participants', currentParticipants);
 
                 // Confirm successful join
                 socket.emit('joined-meeting', {

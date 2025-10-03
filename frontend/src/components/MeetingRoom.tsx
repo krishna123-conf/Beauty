@@ -103,8 +103,9 @@ const MeetingRoom: React.FC<MeetingRoomProps> = ({
       };
       setChatMessages(prev => [...prev, systemMessage]);
 
-      // Create WebRTC offer for the new participant (existing participant initiates)
-      webrtcService.createOffer(data.participantId);
+      // DO NOT create offer here - the new participant will create offers to existing participants
+      // This prevents the "glare" condition where both sides try to create offers simultaneously
+      console.log(`📋 ${data.participantName} joined, waiting for their offer...`);
     });
 
     // Handle current participants list when joining
@@ -128,11 +129,14 @@ const MeetingRoom: React.FC<MeetingRoomProps> = ({
         return updated;
       });
       
-      // Create WebRTC offers for all existing participants
+      // As the new participant, create WebRTC offers for all existing participants
+      // This establishes us as the "offerer" and they will respond with "answers"
+      console.log(`📡 Creating offers to ${participants.length} existing participants`);
       participants.forEach(p => {
         if (p.participantId !== currentParticipant.id) {
-          // Small delay to ensure the other participant is ready
+          // Small delay to ensure WebRTC service is ready
           setTimeout(() => {
+            console.log(`📡 Creating offer to participant: ${p.participantName} (${p.participantId})`);
             webrtcService.createOffer(p.participantId);
           }, 500);
         }
